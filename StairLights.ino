@@ -18,14 +18,15 @@ int alarmValueTop = LOW;    // Variable to hold the PIR status
 int alarmValueBottom = LOW; // Variable to hold the PIR status
 int downUp = 0;              // variable to rememer the direction of travel up or down the stairs
 unsigned long timeOut=60000; // timestamp to remember when the PIR was triggered.
+unsigned long timeOut2 = 0;
 
-int stairs = 30;  // Total number of stairs
+int stairs = 13;  // Total number of stairs
 unsigned long imillis;
 unsigned long ledmillis;
 String topic = "mytopic/stairs";
 
 #define PIN        0  //D3 pin for the NEOPIXEL
-#define NUMPIXELS 30  //Total leds aka ledsStair = Stairs
+#define NUMPIXELS 234  //Total leds aka ledsStair = Stairs
 Adafruit_NeoPixel strip(NUMPIXELS, PIN, NEO_GRB + NEO_KHZ800);
 
 int ledsStair = NUMPIXELS/stairs;
@@ -60,7 +61,7 @@ imillis = millis();
  strip.begin();
  
  
- strip.setBrightness(80); //adjust brightness here
+ strip.setBrightness(90); //adjust brightness here
  strip.clear();
 }
 
@@ -87,13 +88,13 @@ void onConnectionEstablished()
 
  void bottomup() {
     Serial.println ("detected bottom");            // Helpful debug message
-    colourWipeUp(strip.Color(random(50,255), random(50,255),random(50,255)), 30);  // Warm White
+    colourWipeUp(strip.Color(random(20,255), random(20,255),random(20,255)), 100); 
 
   }
 
 void topdown() {
     Serial.println ("detected top");                  // Helpful debug message
-    colourWipeDown(strip.Color(250, 250, 250), 30 );  // Warm White
+    colourWipeDown(strip.Color(250, 250, 250), 100 );  // Warm White
  }
  
 void checkInterupt() {
@@ -145,8 +146,8 @@ uint32_t c4 = (strip.Color(out[2]/40,out[1]/40,out[0]/40));
       strip.fill(c2,start-3*ledsStair,ledsStair);
       strip.fill(c3,start-2*ledsStair,ledsStair);
       strip.fill(c4,start,ledsStair);
-      Serial.println(start);
-      Serial.println(ledsStair);
+      //Serial.println(start);
+      //Serial.println(ledsStair);
       strip.show();  
   delay(wait);
   }
@@ -158,7 +159,7 @@ void poweroffLed() {
   if (ledmillis + 2000 < millis() && ledstatus == 1) {
     Serial.println("Turning off led");
     client.publish(topic, "Turn off LED");
-    colourWipeUp(strip.Color(0, 0, 0), 30);   // Off
+    colourWipeUp(strip.Color(0, 0, 0), 150);   // Off
     ledstatus = 0;
 
 }
@@ -176,16 +177,26 @@ void loop()
     alarmValueBottom = digitalRead(alarmPinBottom);  // Constantly poll the PIR at the bottom of the stairs
     //Serial.println(alarmPinBottom);
     int analogValue = analogRead(outputpin);
-    
+        
+    if (timeOut2+2000 < millis()) {
+        Serial.print("Pir top, Bot: ");
+        Serial.print(alarmValueTop);
+        Serial.print(" ");
+        Serial.println(alarmValueBottom);
+        Serial.print("LDR: ");
+        Serial.print(analogValue);
+        Serial.print(" Ledstatus: ");
+        Serial.println(ledstatus);
+        timeOut2 = millis();
+     }   
     
     if ((alarmValueTop == HIGH || alarmValueBottom == HIGH) && analogValue < 200) {  //Only work with the system if something is triggered
       timeOut=millis();  // Timestamp when the PIR is triggered.  The LED cycle wil then start.
-       
       if (alarmValueTop == HIGH && downUp != 2)  {      // the 2nd term allows timeOut to be contantly reset if one lingers at the top of the stairs before decending but will not allow the bottom PIR to reset timeOut as you decend past it.
         downUp = 1;
         if (ledstatus == 0) {
           topdown();         // lights up the strip from top down
-          Serial.println(analogValue);
+          //Serial.println(analogValue);
           ledstatus = 1;
         }
       } 
@@ -193,7 +204,7 @@ void loop()
         downUp = 2;
         if (ledstatus == 0) {
           bottomup();         // lights up the strip from bottom up
-          Serial.println(analogValue);
+          //Serial.println(analogValue);
           ledstatus = 1;
         }
       }
@@ -201,12 +212,12 @@ void loop()
     }
 
     
-   if (timeOut+8000 < millis() && downUp > 0) {    //switch off LED's in the direction of travel.
+   if (timeOut+4000 < millis() && downUp > 0) {    //switch off LED's in the direction of travel.
        if (downUp == 1) {
-          colourWipeDown(strip.Color(0, 0, 0), 100); // Off
+          colourWipeDown(strip.Color(0, 0, 0), 150); // Off
        }
        if (downUp == 2)  {
-        colourWipeUp(strip.Color(0, 0, 0), 100);   // Off
+        colourWipeUp(strip.Color(0, 0, 0), 150);   // Off
        }
       downUp = 0;
       ledstatus = 0;
@@ -228,5 +239,5 @@ if (ledstatus == 0) {
 
 //poweroffLed();
 client.loop();
-delay(5);
+delay(10);
 }
